@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trucker's Reset Companion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4299e1;
+            border-radius: 4px;
+        }
+        
+        /* Pulsing animation for countdown */
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        
+        .pulse-animation {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-100 via-white to-blue-100 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white shadow-2xl rounded-2xl overflow-hidden">
+        <!-- Header -->
+        <div class="bg-blue-600 text-white p-6 text-center relative">
+            <i class="fas fa-truck-moving absolute left-6 top-1/2 transform -translate-y-1/2 text-3xl"></i>
+            <h1 class="text-3xl font-bold">Trucker's Reset</h1>
+            <p class="text-sm text-blue-100">Your Driving Hours Companion</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="p-6">
+            <!-- Reset Type Selection -->
+            <div class="mb-4">
+                <label class="block text-gray-700 font-bold mb-2">
+                    <i class="fas fa-clock mr-2 text-blue-600"></i>Reset Type
+                </label>
+                <div class="flex space-x-2">
+                    <button 
+                        type="button" 
+                        data-type="34" 
+                        class="reset-type-btn w-full py-3 border-2 rounded-lg transition-all 
+                        text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white 
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50
+                        flex items-center justify-center"
+                    >
+                        <i class="fas fa-calendar-alt mr-2"></i>34-Hour 
+                    </button>
+                    <button 
+                        type="button" 
+                        data-type="10" 
+                        class="reset-type-btn w-full py-3 border-2 rounded-lg transition-all 
+                        text-green-600 border-green-600 hover:bg-green-600 hover:text-white 
+                        focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50
+                        flex items-center justify-center"
+                    >
+                        <i class="fas fa-clock mr-2"></i>10-Hour
+                    </button>
+                </div>
+            </div>
+
+            <!-- Start Date Time Input -->
+            <div class="mb-4">
+                <label class="block text-gray-700 font-bold mb-2">
+                    <i class="fas fa-calendar-plus mr-2 text-blue-600"></i>Start Date and Time
+                </label>
+                <input 
+                    type="datetime-local" 
+                    id="startDateTime" 
+                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg 
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                >
+            </div>
+
+            <!-- Buttons -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <button 
+                    id="calculateBtn" 
+                    class="bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 
+                    transition duration-300 flex items-center justify-center space-x-2"
+                >
+                    <i class="fas fa-calculator"></i>
+                    <span>Calculate</span>
+                </button>
+                <button 
+                    id="resetBtn" 
+                    class="bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 
+                    transition duration-300 flex items-center justify-center space-x-2"
+                >
+                    <i class="fas fa-redo"></i>
+                    <span>Reset</span>
+                </button>
+            </div>
+
+            <!-- Result Container -->
+            <div 
+                id="resultContainer" 
+                class="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-r-lg hidden"
+            >
+                <h2 class="text-xl font-bold text-blue-700 mb-2">
+                    <i class="fas fa-info-circle mr-2"></i>Reset Details
+                </h2>
+                <p id="resetEndDateTime" class="text-gray-700 mb-2"></p>
+                <div 
+                    id="remainingTime" 
+                    class="text-2xl font-bold text-blue-600 pulse-animation"
+                ></div>
+            </div>
+        </div>
+
+        <!-- Reset Complete Modal -->
+        <div 
+            id="resetCompleteModal" 
+            class="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center hidden"
+        >
+            <div class="bg-white w-11/12 max-w-md rounded-2xl shadow-2xl p-8 text-center">
+                <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
+                <h2 class="text-3xl font-bold text-green-600 mb-4">Reset Complete!</h2>
+                <p 
+                    id="resetCompleteMessage" 
+                    class="text-xl text-gray-700 mb-6"
+                ></p>
+                <button 
+                    id="closeModalBtn" 
+                    class="w-full bg-green-600 text-white py-3 rounded-lg 
+                    hover:bg-green-700 transition duration-300 flex items-center justify-center space-x-2"
+                >
+                    <i class="fas fa-times"></i>
+                    <span>Close</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables
+let selectedResetType = null; // Keep track of selected reset type
+
+// Format date with full month name, day, year, and time
+function formatDate(date) {
+    const options = {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    };
+    return date.toLocaleString('en-US', options);
+}
+
+// Calculate reset time
+function calculateResetTime() {
+    if (!selectedResetType) {
+        alert('Please select a reset type');
+        return;
+    }
+
+    const resetType = parseInt(selectedResetType);
+    const startDateTime = new Date(document.getElementById('startDateTime').value);
+
+    if (isNaN(startDateTime.getTime())) {
+        alert('Please enter a valid start date and time');
+        return;
+    }
+
+    const resetEndTime = new Date(startDateTime.getTime() + resetType * 60 * 60 * 1000);
+
+    // Save data to localStorage
+    localStorage.setItem('resetStartTime', startDateTime.toISOString());
+    localStorage.setItem('resetType', resetType);
+    localStorage.setItem('resetEndTime', resetEndTime.toISOString());
+
+    // Display results
+    document.getElementById('resetEndDateTime').textContent = `Reset End: ${formatDate(resetEndTime)}`;
+    updateRemainingTime(resetEndTime);
+
+    document.getElementById('resultContainer').classList.remove('hidden');
+
+    // Start periodic update of remaining time
+    startRemainingTimeUpdate(resetEndTime);
+}
+
+// Update remaining time periodically
+function startRemainingTimeUpdate(resetEndTime) {
+    function updateTime() {
+        updateRemainingTime(resetEndTime);
+    }
+
+    // Clear any existing intervals
+    if (window.resetInterval) {
+        clearInterval(window.resetInterval);
+    }
+
+    // Update immediately and then every second
+    updateTime();
+    window.resetInterval = setInterval(updateTime, 1000);
+}
+
+// Calculate and display remaining time
+function updateRemainingTime(resetEndTime) {
+    const now = new Date();
+    const difference = resetEndTime.getTime() - now.getTime();
+
+    if (difference <= 0) {
+        document.getElementById('remainingTime').textContent = 'Reset period completed!';
+        clearInterval(window.resetInterval);
+        return;
+    }
+
+    const hours = Math.floor(difference / (1000 * 60 * 60));
+    const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+    document.getElementById('remainingTime').textContent = `Remaining: ${hours}h ${minutes}m ${seconds}s`;
+}
+
+// Reset functionality
+function resetCalculator() {
+    document.getElementById('startDateTime').value = '';
+    document.getElementById('resultContainer').classList.add('hidden');
+    document.getElementById('resetEndDateTime').textContent = '';
+    document.getElementById('remainingTime').textContent = '';
+    selectedResetType = null; // Reset selection
+    clearInterval(window.resetInterval);
+
+    // Remove active state from buttons
+    document.querySelectorAll('.reset-type-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'bg-green-600', 'text-white');
+    });
+
+    // Clear localStorage
+    localStorage.removeItem('resetStartTime');
+    localStorage.removeItem('resetType');
+    localStorage.removeItem('resetEndTime');
+}
+
+// Load saved data from localStorage on page load
+function loadSavedData() {
+    const savedStartTime = localStorage.getItem('resetStartTime');
+    const savedResetType = localStorage.getItem('resetType');
+    const savedEndTime = localStorage.getItem('resetEndTime');
+
+    if (savedStartTime && savedResetType && savedEndTime) {
+        document.getElementById('startDateTime').value = new Date(savedStartTime).toISOString().slice(0, 16);
+        selectedResetType = savedResetType;
+
+        // Highlight the selected reset type button
+        document.querySelectorAll('.reset-type-btn').forEach(btn => {
+            if (btn.dataset.type === savedResetType) {
+                btn.classList.add(
+                    savedResetType === '34' ? 'bg-blue-600' : 'bg-green-600',
+                    'text-white'
+                );
+            }
+        });
+
+        const resetEndTime = new Date(savedEndTime);
+        document.getElementById('resetEndDateTime').textContent = `Reset End: ${formatDate(resetEndTime)}`;
+        
+        document.getElementById('resultContainer').classList.remove('hidden');
+        updateRemainingTime(resetEndTime);
+        startRemainingTimeUpdate(resetEndTime);
+    }
+}
+
+// Event Listeners
+document.getElementById('calculateBtn').addEventListener('click', calculateResetTime);
+document.getElementById('resetBtn').addEventListener('click', resetCalculator);
+
+// Handle reset type button clicks
+document.querySelectorAll('.reset-type-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+        // Remove active state from all buttons
+        document.querySelectorAll('.reset-type-btn').forEach(b => {
+            b.classList.remove('bg-blue-600', 'bg-green-600', 'text-white');
+        });
+
+        // Add active state to clicked button
+        this.classList.add(
+            this.dataset.type === '34' ? 'bg-blue-600' : 'bg-green-600',
+            'text-white'
+        );
+
+        // Update selected reset type
+        selectedResetType = this.dataset.type;
+    });
+});
+
+// Load saved data when page loads
+window.addEventListener('load', loadSavedData);
+
+
+
+    </script>
+</body>
+</html>
